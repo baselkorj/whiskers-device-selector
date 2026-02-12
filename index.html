@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whiskers Device Selector</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f3f4f6;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Header -->
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-slate-800 mb-2">Whiskers Device Selector</h1>
+        <p class="text-slate-600">Find the perfect IIoT hardware for your specific use case.</p>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app-container" class="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden min-h-[500px] flex flex-col relative transition-all duration-300">
+        
+        <!-- Progress Bar -->
+        <div class="w-full bg-gray-200 h-2">
+            <div id="progress-bar" class="bg-blue-600 h-2 transition-all duration-500" style="width: 0%"></div>
+        </div>
+
+        <!-- Content Area -->
+        <div id="content" class="p-8 flex-grow flex flex-col justify-center items-center text-center fade-in">
+            <!-- Dynamic Content Injected Here -->
+        </div>
+
+        <!-- Footer / Reset -->
+        <div class="bg-slate-50 p-4 border-t border-slate-100 flex justify-between items-center">
+            <span class="text-xs text-slate-400">Powered by ESBAAR Logic</span>
+            <button onclick="resetApp()" class="text-sm text-blue-600 hover:text-blue-800 font-semibold px-3 py-1 rounded hover:bg-blue-50 transition">
+                <i class="fa-solid fa-rotate-right mr-1"></i> Restart
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA & LOGIC ---
+
+        const products = {
+            vibration: {
+                name: "Whiskers Vibration Monitor",
+                icon: "fa-solid fa-wave-square",
+                image: "product-images/vibration-sensor.png", 
+                features: ["3-Axis MEMS Vibration", "Acoustic & Temp", "Ex-Proof Certified", "Predictive Maint."],
+                description: "Ideal for rotating equipment like pumps, motors, and turbines. Detects faults early to prevent downtime.",
+                battery: "3 Years (Replaceable)"
+            },
+            wristband: {
+                name: "Personnel Wristband",
+                icon: "fa-solid fa-heart-pulse",
+                image: "product-images/smart-watch.png",
+                features: ["Biometrics (HR, O2)", "SOS Button", "Fall Detection", "Message Display"],
+                description: "A smartwatch-style tracker for workforce safety. Monitors vitals and allows two-way communication alerts.",
+                battery: "Rechargeable (7 Days)"
+            },
+            personnelTag: {
+                name: "Personnel Tracking Tag",
+                icon: "fa-solid fa-helmet-safety",
+                image: "product-images/helmet-tracker.png",
+                features: ["Centimeter-level Precision", "Ex-Proof Certified", "Helmet or Wrist Mount", "SOS Button"],
+                description: "Rugged protection for hazardous zones. High-precision tracking without the biometric screens.",
+                battery: "1 Month (Rechargeable)"
+            },
+            cardTracker: {
+                name: "Whiskers Card Tracker",
+                icon: "fa-solid fa-id-card",
+                image: "product-images/card-tracker.png",
+                features: ["Ultra-slim (6.5mm)", "Indoor/Outdoor", "WiFi/BLE/GNSS", "Wallet/Badge Size"],
+                description: "Perfect for office environments, visitors, or light-duty asset tracking where form factor matters most.",
+                battery: "6 Months (Rechargeable)"
+            },
+            satellite: {
+                name: "Whiskers Satellite Tracker",
+                icon: "fa-solid fa-satellite",
+                image: "product-images/animal-tracker.png",
+                features: ["Solar Powered", "Global Connectivity", "No Infrastructure Needed", "IP68 Rated"],
+                description: "The 'No Internet, No Issue' solution. Tracks animals or assets in remote deserts or off-grid locations.",
+                battery: "Solar (Infinite theoretical)"
+            },
+            rugged: {
+                name: "Whiskers Rugged Tracker",
+                icon: "fa-solid fa-box",
+                image: "product-images/asset-tracker.png",
+                features: ["5-Year Battery Life", "IP67 Water/Dust Proof", "GPS/LBS/Bluetooth", "Magnetic Mount"],
+                description: "The gold standard for long-term industrial asset tracking. Install it and forget it.",
+                battery: "5 Years (2600mAh)"
+            }
+        };
+
+        // State Management
+        let step = 0;
+        const container = document.getElementById('content');
+        const progressBar = document.getElementById('progress-bar');
+
+        // Render Functions
+        function setProgress(percent) {
+            progressBar.style.width = percent + '%';
+        }
+
+        function renderQuestion(title, subtitle, options) {
+            let optionsHtml = options.map(opt => `
+                <button onclick="${opt.action}" 
+                    class="w-full text-left p-4 mb-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition card-hover flex items-center group">
+                    <div class="bg-blue-100 text-blue-600 w-10 h-10 rounded-full flex items-center justify-center mr-4 group-hover:bg-blue-600 group-hover:text-white transition shrink-0">
+                        <i class="${opt.icon}"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-800">${opt.label}</div>
+                        <div class="text-sm text-slate-500">${opt.desc}</div>
+                    </div>
+                    <div class="ml-auto text-slate-300 group-hover:text-blue-500">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </div>
+                </button>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="w-full max-w-md fade-in">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2">${title}</h2>
+                    <p class="text-slate-500 mb-6">${subtitle}</p>
+                    <div class="flex flex-col">
+                        ${optionsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderResult(productKey) {
+            setProgress(100);
+            const p = products[productKey];
+            
+            const featuresHtml = p.features.map(f => 
+                `<span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold mr-2 mb-2 border border-blue-100">${f}</span>`
+            ).join('');
+
+            container.innerHTML = `
+                <div class="text-center w-full max-w-lg fade-in pb-4">
+                    <div class="flex items-center justify-center space-x-2 mb-2 text-green-600 font-semibold">
+                         <i class="fa-solid fa-check-circle"></i> 
+                         <span>Recommended Device</span>
+                    </div>
+                    <h1 class="text-3xl font-bold text-slate-800 mb-4">${p.name}</h1>
+                    
+                    <!-- Product Image -->
+                    <div class="mb-6 w-full flex justify-center bg-white p-2">
+                        <img src="${p.image}" alt="${p.name}" class="h-48 object-contain rounded-lg drop-shadow-md">
+                    </div>
+
+                    <div class="bg-slate-50 rounded-xl p-6 border border-slate-100 mb-6 text-left">
+                        <div class="flex items-center mb-3 text-slate-700">
+                             <i class="${p.icon} mr-2"></i>
+                             <span class="font-bold text-sm uppercase tracking-wide">Overview</span>
+                        </div>
+                        <p class="text-slate-600 mb-4 text-sm leading-relaxed">
+                            ${p.description}
+                        </p>
+                        <div class="mb-4 flex flex-wrap">
+                            ${featuresHtml}
+                        </div>
+                        <div class="text-xs text-slate-500 border-t border-slate-200 pt-3 mt-3 flex items-center">
+                            <i class="fa-solid fa-battery-full mr-2 text-green-500"></i> Power: <span class="font-semibold ml-1">${p.battery}</span>
+                        </div>
+                    </div>
+
+                    <button onclick="resetApp()" class="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition shadow-lg shadow-blue-500/30 w-full md:w-auto">
+                        Start New Selection
+                    </button>
+                </div>
+            `;
+        }
+
+        // --- NAVIGATION LOGIC ---
+
+        function startApp() {
+            step = 1;
+            setProgress(10);
+            renderQuestion(
+                "What are you monitoring?",
+                "Select the primary category for your deployment.",
+                [
+                    { label: "Machinery & Equipment", desc: "Pumps, motors, compressors, turbines", icon: "fa-solid fa-gears", action: "handleMachinery()" },
+                    { label: "Personnel / Workforce", desc: "Safety, location, and health monitoring", icon: "fa-solid fa-users", action: "handlePersonnel()" },
+                    { label: "Assets or Animals", desc: "Vehicles, livestock, cargo, solar panels", icon: "fa-solid fa-truck-fast", action: "handleAssets()" }
+                ]
+            );
+        }
+
+        function handleMachinery() {
+            renderResult('vibration');
+        }
+
+        function handlePersonnel() {
+            setProgress(50);
+            renderQuestion(
+                "Health & Vitals?",
+                "Do you need to monitor Heart Rate, Oxygen, or Blood Pressure?",
+                [
+                    { label: "Yes, Vitals Required", desc: "I need comprehensive biometric data", icon: "fa-solid fa-heart-pulse", action: "renderResult('wristband')" },
+                    { label: "No, Location/Safety Only", desc: "Just tracking and SOS capabilities", icon: "fa-solid fa-location-dot", action: "askPersonnelFormFactor()" }
+                ]
+            );
+        }
+
+        function askPersonnelFormFactor() {
+            setProgress(75);
+            renderQuestion(
+                "Environment & Form Factor",
+                "Where will the device be worn?",
+                [
+                    { label: "Hazardous / Industrial", desc: "Helmet mount, Ex-Proof, High Precision", icon: "fa-solid fa-helmet-safety", action: "renderResult('personnelTag')" },
+                    { label: "Office / Light Duty", desc: "ID Card holder, Slim profile", icon: "fa-solid fa-id-card", action: "renderResult('cardTracker')" }
+                ]
+            );
+        }
+
+        function handleAssets() {
+            setProgress(50);
+            renderQuestion(
+                "Connectivity Environment",
+                "Where is the asset located?",
+                [
+                    { label: "Remote / Off-Grid", desc: "No cellular or LoRaWAN coverage (Deserts, Sea)", icon: "fa-solid fa-tower-broadcast", action: "renderResult('satellite')" },
+                    { label: "Urban / Industrial", desc: "Site has LoRaWAN or Cellular coverage", icon: "fa-solid fa-city", action: "askAssetFormFactor()" }
+                ]
+            );
+        }
+
+        function askAssetFormFactor() {
+            setProgress(75);
+            renderQuestion(
+                "Size vs. Battery Life",
+                "What is the priority constraint?",
+                [
+                    { label: "Maximum Durability", desc: "Rugged, 5-year battery life", icon: "fa-solid fa-battery-full", action: "renderResult('rugged')" },
+                    { label: "Slim Profile", desc: "Wallet/Card size, rechargeable", icon: "fa-solid fa-expand", action: "renderResult('cardTracker')" }
+                ]
+            );
+        }
+
+        function resetApp() {
+            startApp();
+        }
+
+        // Initialize
+        startApp();
+
+    </script>
+</body>
+</html>
